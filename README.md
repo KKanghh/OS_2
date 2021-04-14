@@ -98,13 +98,13 @@ To better understand them, you will implement SJF, SRTF, round-robin, priority, 
 
 - Document: One PDF document (50 pts) including;
 	- Description how **each** scheduling policy is implemented
-	  - Do not explain the code itself. Instead, focus on explaining your idea and approach.
-	  - Please, do not put screenshots of your code.
+		- Do not explain the code itself. Instead, focus on explaining your idea and approach.
+		- Please, do not put screenshots of your code.
 	- Show how the priorities of processes are changed over time for aging and PIP.
-    - Use `prio` testcase for PA scheduler, and `resources-adv2` for PIP.
+		- Use `prio` testcase for PA scheduler, and `resources-adv2` for PIP.
 		- Explain to the 12nd tick.
 	- Lesson learned
-	  - No need recite what is explained in the class.
+		- No need recite what is explained in the class.
 	- No more than **five** pages
 
 - Git repository (10 pts)
