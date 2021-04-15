@@ -158,7 +158,7 @@ static struct process *fifo_schedule(void)
 	struct process *next = NULL;
 
 	/* You may inspect the situation by calling dump_status() at any time */
-	// dump_status();
+	 //dump_status();
 
 	/**
 	 * When there was no process to run in the previous tick (so does
@@ -256,24 +256,91 @@ struct scheduler sjf_scheduler = {
 /***********************************************************************
  * SRTF scheduler
  ***********************************************************************/
-static struct process *sjf_schedule(void)
+static struct process *srtf_schedule(void)
 {
+	dump_status();
+	struct process * next = NULL, * cursor = NULL, * temp = NULL;
+
+	if (!current || current->status == PROCESS_WAIT) {
+		goto pick_next;
+	}
+
+	if (!list_empty(&readyqueue) && list_last_entry(&readyqueue, struct process, list)->age == -1) {
+		goto peemption;
+	}
+
+	if (current->age < current->lifespan) {
+		return current;
+	}
+
+
+pick_next:
+	if (!list_empty(&readyqueue)) {
+		
+		next = list_first_entry(&readyqueue, struct process, list);
+
+		list_for_each_entry_safe(cursor, temp, &readyqueue, list)
+			if (cursor->lifespan - cursor-> age < next->lifespan - next->age) next = cursor;
 	
+		list_del_init(&next->list);
+	}
+	return next;
+
+peemption:
+	next = list_last_entry(&readyqueue, struct process, list);
+	next->age = 0;
+	if (next->lifespan - next->age < current->lifespan - current->age) {
+		list_add_tail(&current->list, &readyqueue);
+		list_del_init(&next->list);
+
+		return next;
+	}
+	else return current;
+}
+
+void srtf_forked(struct process * p) {
+	if(current) {
+		p->age--;
+	}
 }
 
 struct scheduler srtf_scheduler = {
 	.name = "Shortest Remaining Time First",
 	.acquire = fcfs_acquire, /* Use the default FCFS acquire() */
 	.release = fcfs_release, /* Use the default FCFS release() */
-	.schedule = srtf_schedule
-	.forked = srtf_schedule
-	
+	.schedule = srtf_schedule,
+	.forked = srtf_forked,
 	/* You need to check the newly created processes to implement SRTF.
 	 * Use @forked() callback to mark newly created processes */
 	/* Obviously, you should implement srtf_schedule() and attach it here */
+	
 };
 
+static struct process *rr_schedule(void)
+{
+	struct process * next = NULL, * cursor, * temp;
+	//dump_status();
+	if (!current || current->status == PROCESS_WAIT) {
+		
+		if (!list_empty(&readyqueue)) {
+		
+		next = list_first_entry(&readyqueue, struct process, list);
+		list_del_init(&next->list);
+		}
+		return next;
+	}
+	
+	if (list_empty(&readyqueue) && current->age == current->lifespan) return next;
 
+	list_for_each_entry_safe(cursor, temp, &readyqueue, list)
+		if (cursor->status == PROCESS_READY) {
+			if (current->age < current->lifespan) list_add_tail(&current->list, &readyqueue);
+			list_del_init(&cursor->list);
+			next = cursor;
+			return next;
+		}
+	return current;
+}
 /***********************************************************************
  * Round-robin scheduler
  ***********************************************************************/
@@ -281,6 +348,7 @@ struct scheduler rr_scheduler = {
 	.name = "Round-Robin",
 	.acquire = fcfs_acquire, /* Use the default FCFS acquire() */
 	.release = fcfs_release, /* Use the default FCFS release() */
+	.schedule = rr_schedule,
 	/* Obviously, you should implement rr_schedule() and attach it here */
 };
 
@@ -288,8 +356,63 @@ struct scheduler rr_scheduler = {
 /***********************************************************************
  * Priority scheduler
  ***********************************************************************/
+static struct process *prio_schedule(void) {
+	dump_status();
+	struct process * next = NULL, * cursor = NULL, * temp = NULL;
+
+	if (!current || current->status == PROCESS_WAIT) {
+		goto pick_next;
+	}
+	
+	if (list_last_entry(&readyqueue, struct process, list)->age == -1) {
+		goto peemption;
+	}
+
+	if (current->age < current->lifespan) {
+		return current;
+	}
+
+pick_next:
+	if (!list_empty(&readyqueue)) {
+		
+		next = list_first_entry(&readyqueue, struct process, list);
+
+		list_for_each_entry_safe(cursor, temp, &readyqueue, list)
+			if (cursor->prio > next->prio) next = cursor;
+
+		list_del_init(&next->list);
+	}
+	return next;
+
+peemption:
+	next = list_last_entry(&readyqueue, struct process, list);
+	next->age = 0;
+	
+	if (next->prio > current->prio) {
+		list_add_tail(&current->list, &readyqueue);
+		list_del_init(&next->list);
+
+		return next;
+	}
+	else return current;
+
+} 
+
+//bool prio_acquire(int resource_id) {
+
+//}
+
+//void prio_release(int resource_id)  {
+
+//}
+
 struct scheduler prio_scheduler = {
 	.name = "Priority",
+	.acquire = fcfs_acquire, 
+	.release = fcfs_release, 
+	.schedule = prio_schedule,
+	.forked = srtf_forked,
+
 	/**
 	 * Implement your own acqure/release function to make priority
 	 * scheduler correct.
