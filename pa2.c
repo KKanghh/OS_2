@@ -258,7 +258,7 @@ struct scheduler sjf_scheduler = {
  ***********************************************************************/
 static struct process *srtf_schedule(void)
 {
-	dump_status();
+	
 	struct process * next = NULL, * cursor = NULL, * temp = NULL;
 
 	if (!current || current->status == PROCESS_WAIT) {
@@ -357,14 +357,14 @@ struct scheduler rr_scheduler = {
  * Priority scheduler
  ***********************************************************************/
 static struct process *prio_schedule(void) {
-	dump_status();
+	
 	struct process * next = NULL, * cursor = NULL, * temp = NULL;
 
 	if (!current || current->status == PROCESS_WAIT) {
 		goto pick_next;
 	}
 	
-	if (list_last_entry(&readyqueue, struct process, list)->age == -1) {
+	if (!list_empty(&readyqueue) && list_last_entry(&readyqueue, struct process, list)->age == -1) {
 		goto peemption;
 	}
 
@@ -376,11 +376,11 @@ pick_next:
 	if (!list_empty(&readyqueue)) {
 		
 		next = list_first_entry(&readyqueue, struct process, list);
-
 		list_for_each_entry_safe(cursor, temp, &readyqueue, list)
 			if (cursor->prio > next->prio) next = cursor;
 
 		list_del_init(&next->list);
+		if (next->age == -1) next->age = 0;
 	}
 	return next;
 
@@ -398,18 +398,38 @@ peemption:
 
 } 
 
-//bool prio_acquire(int resource_id) {
 
-//}
+void prio_release(int resource_id)  {
+	struct resource *r = resources + resource_id;
 
-//void prio_release(int resource_id)  {
+	/* Ensure that the owner process is releasing the resource */
+	assert(r->owner == current);
 
-//}
+	/* Un-own this resource */
+	r->owner = NULL;
+
+	/* Let's wake up ONE waiter (if exists) that came first */
+	if (!list_empty(&r->waitqueue)) {
+		struct process *waiter =
+				list_first_entry(&r->waitqueue, struct process, list);
+		struct process *cursor, *temp;
+		list_for_each_entry_safe(cursor, temp, &r->waitqueue, list)
+			if (cursor->prio > waiter->prio) waiter = cursor;
+		
+		assert(waiter->status == PROCESS_WAIT);
+
+		list_del_init(&waiter->list);
+
+		waiter->status = PROCESS_READY;
+
+		list_add_tail(&waiter->list, &readyqueue);
+	}
+}
 
 struct scheduler prio_scheduler = {
 	.name = "Priority",
 	.acquire = fcfs_acquire, 
-	.release = fcfs_release, 
+	.release = prio_release, 
 	.schedule = prio_schedule,
 	.forked = srtf_forked,
 
@@ -424,13 +444,61 @@ struct scheduler prio_scheduler = {
 /***********************************************************************
  * Priority scheduler with aging
  ***********************************************************************/
+void aging() {
+	struct process * cursor, * temp;
+	list_for_each_entry_safe(cursor, temp, &readyqueue, list)
+		cursor->prio++;
+}
+
+static struct process *pa_schedule(void) {
+	dump_status();
+	struct process * next = NULL, * cursor = NULL, * temp = NULL;
+	if (!list_empty(&readyqueue)) aging();
+	if (current) current->prio = current->prio_orig;
+	else {
+		if (list_empty(&readyqueue)) return next;
+		else {
+			next = list_first_entry(&readyqueue, struct process, list);
+			list_for_each_entry_safe(cursor, temp, &readyqueue, list){
+				if (next->prio < cursor->prio) next = cursor;
+			}
+			list_del_init(&next->list);
+			return next;
+			
+		}
+	}
+	
+	if (list_empty(&readyqueue)) {
+		if (current->age < current->lifespan) return current;
+		else return next;
+	}
+	else {
+		if (current->age < current->lifespan) {
+			next = current;
+			list_for_each_entry_safe(cursor, temp, &readyqueue, list){
+				if (next->prio <= cursor->prio) next = cursor;
+			}	
+			list_add_tail(&current->list, &readyqueue);
+			list_del_init(&next->list);
+			return next;	
+		}
+		else {
+			next = list_first_entry(&readyqueue, struct process, list);
+			list_for_each_entry_safe(cursor, temp, &readyqueue, list){
+				if (next->prio < cursor->prio) next = cursor;
+			}	
+			list_del_init(&next->list);
+			return next;
+		}
+	}
+}
+
 struct scheduler pa_scheduler = {
 	.name = "Priority + aging",
-	/**
-	 * Implement your own acqure/release function to make priority
-	 * scheduler correct.
-	 */
-	/* Implement your own prio_schedule() and attach it here */
+	.acquire = fcfs_acquire, 
+	.release = prio_release, 
+	.schedule = pa_schedule,
+	.forked = srtf_forked,
 };
 
 
