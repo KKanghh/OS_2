@@ -11,7 +11,7 @@ To better understand them, you will implement SJF, SRTF, round-robin, priority, 
 
 ### Problem Specification
 
-- The framework maintains the time with `ticks` variable. It is increased by 1 when a scheduling is happened. You may read this varible but should not modify it.
+- The framework maintains the time with `ticks` variable. It is increased by 1 when a scheduling is happened. You may read this variable but should not modify it.
 
 - Firstly, we need a schedulable entity, and it is the process. The framework accepts a *process description file* as the argument, and it describes the processes to simulate. Following example shows an example description file for two processes (process 1 and process 2).
 
@@ -45,11 +45,11 @@ To better understand them, you will implement SJF, SRTF, round-robin, priority, 
 
 - The framework has the ready queue `struct list_head readyqueue` which is supposed to keep the list of processes that are ready to run. Note that *the current process should not be in the ready queue* since it is currently running, not ready to run.
 
-- The system has a number of system resources (16 in this PA) that can be assigned to processes *exclusively*. `struct resource` defines the system resources in `resource.h`. The process may ask the framework to acquire a resoruce and release it after use. Such a resource use is specified in the process description file using `acquire` property. For example, `acquire 1 4 2` means the process will require resource #1 for 2 ticks when it is aged for 2 ticks. Have a look at `testcases/resources` for an example.
+- The system has a number of system resources (16 in this PA) that can be assigned to processes *exclusively*. `struct resource` defines the system resources in `resource.h`. The process may ask the framework to acquire a resource and release it after use. Such a resource use is specified in the process description file using `acquire` property. For example, `acquire 1 4 2` means the process will require resource #1 for 2 ticks when it is aged for 2 ticks. Have a look at `testcases/resources` for an example.
 
 - When the framework gets the resource acquisition request, it calls `acquire()` function of the scheduler. Similarly, the framework calls `release()` function when the process releases a resource. You may find default FCFS acquire/release functions in `pa2.c` which are used by the FIFO scheduler.
 
-- Non-priority-based scheduling policies should handle resource acquision requests in a first-come-first-served way. On the other hand, priority-based scheduling policies should dispatch the releasing resource to the process with the highest priority. To this end, you may define your own acquire/release functions and associate them to your scheduler implementation to make a correct scheduling decision. If two processes with the same priority are requesting the same resource, the one came earlier receives the resource.
+- Non-priority-based scheduling policies should handle resource acquisition requests in a first-come-first-served way. On the other hand, priority-based scheduling policies should dispatch the releasing resource to the process with the highest priority. To this end, you may define your own acquire/release functions and associate them to your scheduler implementation to make a correct scheduling decision. If two processes with the same priority are requesting the same resource, the one came earlier receives the resource.
 
 - The framework is waiting for your implementation of shortest-job first (SJF) scheduler, shortest-remaining time first (SRTF) scheduler, round-robin scheduler, base priority-based scheduler, priority-based scheduler with aging (PA), priority-based scheduler with priority ceiling protocol (PCP), and priority-based scheduler with priority inheritance protocol (PIP). You can select a scheduler to run with a starting option, and the framework will be set to use the corresponding scheduler automatically. Check the options by running the program (`sched`) without any option.
 
@@ -57,9 +57,9 @@ To better understand them, you will implement SJF, SRTF, round-robin, priority, 
 
 - FCFS and SJF are supposed to be non-preemptive; even the framework may ask the scheduler to select next process to run at every tick, the scheduler should not change currently running process unless it is completed. SRTF scheduler can preempt the currently running process when a process with a higher priority arrives, but should keep the current process otherwise.
 
-- For round-robin scheduler, you don't need to worry about managing the time quantum; the framework will automatically call the `schedule()` function whenever the time quantum expires. In other words, the time quantum coincides with the tick. If two processes are with the same priority, they should be run for one tick by turn.
+- For round-robin scheduler, you don't need to worry about managing the time quantum; the framework will automatically call the `schedule()` function whenever the time quantum expires. In other words, the time quantum coincides with the tick. Note that RR does not consider the priority of processes.
 
-- The priority-based schedulers should handle processes with the same priority in the round-robin way; If two or more processes are with the same priority, they should be swiched on each tick.
+- The priority-based schedulers should handle processes with the same priority in the round-robin way; If two or more processes are with the same priority, they should be switched on each tick.
 
 - For priority with aging scheduler, at the every scheduling moment, the priority of the current process is reset to its original priority, and all processes in the readyqueue receive a priority boost by 1. The priority can be boosted up to `MAX_PRIO` defined in `process.h`. The scheduler should pick the process with the highest adjusted priority at this point. Note that the processes with the same priority should be handled in a round-robin manner just like the original priority scheduler.
 
@@ -68,7 +68,7 @@ To better understand them, you will implement SJF, SRTF, round-robin, priority, 
 - When you implement PIP, make sure that the priority of a process is set properly when it releases a resource. There are complicated cases to implement PIP.
 	- More than one processes with different priority values can wait for the releasing resource. Suppose one process is holding one resource type, and other process is to acquire the same resource type. And then, another process with higher (or lower) priority is to acquire the resource type again, and then ...
 	- Many processes with different priority values are waiting for different resources held by a process.
-	You will get the full points for PIP *if and only if* these cases are all handled properly. Hint: calculate the *current* priority of the releasing process by checking resource acquitision status.
+	You will get the full points for PIP *if and only if* these cases are all handled properly. Hint: calculate the *current* priority of the releasing process by checking resource acquisition status.
   - See [this](https://www.embedded.com/how-to-use-priority-inheritance/) for a comprehensive exposition.
 
 
@@ -100,11 +100,11 @@ To better understand them, you will implement SJF, SRTF, round-robin, priority, 
 	- Description how **each** scheduling policy is implemented
 		- Do not explain the code itself. Instead, focus on explaining your idea and approach.
 		- Please, do not put screenshots of your code.
-	- Show how the priorities of processes are changed over time for aging and PIP.
+	- Show the changes of the priorities of processes over time for aging and PIP.
 		- Use `prio` testcase for PA scheduler, and `resources-adv2` for PIP.
-		- Explain to the 12nd tick.
+		- Explain from the beginning of the simulation to the 12nd tick.
 	- Lesson learned
-		- No need recite what is explained in the class.
+		- No need to recite what is explained in the class.
 	- No more than **five** pages
 
 - Git repository (10 pts)
