@@ -319,13 +319,11 @@ struct scheduler srtf_scheduler = {
 static struct process *rr_schedule(void)
 {
 	struct process * next = NULL, * cursor, * temp;
-	//dump_status();
 	if (!current || current->status == PROCESS_WAIT) {
 		
 		if (!list_empty(&readyqueue)) {
-		
-		next = list_first_entry(&readyqueue, struct process, list);
-		list_del_init(&next->list);
+			next = list_first_entry(&readyqueue, struct process, list);
+			list_del_init(&next->list);
 		}
 		return next;
 	}
@@ -358,7 +356,6 @@ struct scheduler rr_scheduler = {
  ***********************************************************************/
 static struct process *prio_schedule(void) {
 	struct process * next = NULL, * cursor = NULL, * temp = NULL;
-	dump_status();
 	if (current) {
 		if (list_empty(&readyqueue)) {
 			if (current->age < current->lifespan) return current;
@@ -384,6 +381,7 @@ static struct process *prio_schedule(void) {
 			}
 		}
 	}
+
 	else {
 		if (list_empty(&readyqueue)) return next;
 		else {
@@ -393,12 +391,8 @@ static struct process *prio_schedule(void) {
 			}
 			list_del_init(&next->list);
 			return next;
-			
 		}
 	}
-	
-	
-
 } 
 
 
