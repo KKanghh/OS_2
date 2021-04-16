@@ -372,7 +372,6 @@ static struct process *prio_schedule(void) {
 				}	
 				list_add_tail(&current->list, &readyqueue);
 				list_del_init(&next->list);
-				if (next->age == -1) next->age++;
 				return next;	
 			}
 			else {
@@ -381,7 +380,6 @@ static struct process *prio_schedule(void) {
 					if (next->prio < cursor->prio) next = cursor;
 				}	
 				list_del_init(&next->list);
-				if (next->age == -1) next->age++;
 				return next;
 			}
 		}
@@ -436,7 +434,6 @@ struct scheduler prio_scheduler = {
 	.acquire = fcfs_acquire, 
 	.release = prio_release, 
 	.schedule = prio_schedule,
-	.forked = srtf_forked,
 
 	/**
 	 * Implement your own acqure/release function to make priority
@@ -484,7 +481,6 @@ static struct process *pa_schedule(void) {
 			}	
 			list_add_tail(&current->list, &readyqueue);
 			list_del_init(&next->list);
-			if (next->age == -1) next->age++;
 			return next;	
 		}
 		else {
@@ -493,7 +489,6 @@ static struct process *pa_schedule(void) {
 				if (next->prio < cursor->prio) next = cursor;
 			}	
 			list_del_init(&next->list);
-			if (next->age == -1) next->age++;
 			return next;
 		}
 	}
@@ -504,7 +499,6 @@ struct scheduler pa_scheduler = {
 	.acquire = fcfs_acquire, 
 	.release = prio_release, 
 	.schedule = pa_schedule,
-	.forked = srtf_forked,
 };
 
 
@@ -559,7 +553,6 @@ struct scheduler pcp_scheduler = {
 	.acquire = pcp_acquire, 
 	.release = pcp_release, 
 	.schedule = prio_schedule,
-	.forked = srtf_forked,
 	/**
 	 * Implement your own acqure/release function too to make priority
 	 * scheduler correct.
@@ -570,9 +563,25 @@ struct scheduler pcp_scheduler = {
 /***********************************************************************
  * Priority scheduler with priority inheritance protocol
  ***********************************************************************/
+bool pip_acquire(int resource_id)
+{
+	struct resource *r = resources + resource_id;
+
+	if (!r->owner) {
+		r->owner = current;
+		return true;
+	}
+
+	current->status = PROCESS_WAIT;
+	if(r->owner->prio < current->prio) r->owner->prio = current->prio;
+	list_add_tail(&current->list, &r->waitqueue);
+
+	return false;
+}
+
 struct scheduler pip_scheduler = {
 	.name = "Priority + PIP Protocol",
-	/**
-	 * Ditto
-	 */
+	.acquire = pip_acquire, 
+	.release = pcp_release, 
+	.schedule = prio_schedule,
 };
